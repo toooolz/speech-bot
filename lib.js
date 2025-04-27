@@ -107,6 +107,10 @@ async function transcribeAudioGROQ(filePath) {
 }
 
 async function downloadFile(url, filePath) {
+    // Ensure the directory exists before creating the stream
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+
     const file = fs.createWriteStream(filePath);
     return new Promise((resolve, reject) => {
         https.get(url, response => {
@@ -143,7 +147,13 @@ async function voiceHandler(ctx, bot) {
         const recognizedText = await transcribeAudio(outputPath);
         console.log('recognizedText:::', recognizedText)
 
-        sendMessageInChunks(ctx, recognizedText);
+        await sendMessageInChunks(ctx, recognizedText);
+        
+        // Delete the audio file after successful transmission
+        fs.unlink(outputPath, (err) => {
+            if (err) console.error('Error deleting audio file:', err);
+            else console.log('Audio file deleted successfully');
+        });
     } catch (err) {
         console.log('⛔️ err:', err)
         ctx.replyWithMarkdown(`⛔️ *Error*\n${JSON.stringify(err)}`);
